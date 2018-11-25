@@ -1,0 +1,5 @@
+# create_schame
+自定义java生成solr全文检索引擎schema.xml配置文件
+resources目录下的schema.xlsx为测试时用的文档，生成文件时可以把数据放在该文档中。
+resources目录下的schema生成工具.xlsm为vb代码写好的生成schema.xml的excel文档，没有java环境的小伙伴们或者图省事的小伙伴们可以直接拿该文档生成。
+
