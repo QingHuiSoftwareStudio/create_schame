@@ -1,10 +1,7 @@
 package com.qinghui;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.*;
@@ -19,7 +16,8 @@ import java.io.*;
 public class CreateSchema {
 
     private static Sheet sheet = null;
-    private static final String EXCEL_PATH = "G:\\develope\\schema.xlsx";
+    private static Workbook  wb = null;
+    private static final String EXCEL_PATH = "G:\\develope\\schema.xls";
     private static final String FILE_TYPE_1 = "xls";
     private static final String FILE_TYPE_2 = "xlsx";
 
@@ -31,7 +29,6 @@ public class CreateSchema {
 
             // 获取文件的后缀名
             String[] split = excel.getName().split("\\.");
-            Workbook wb = null;
             if(FILE_TYPE_1.equals(split[1])) {
                 FileInputStream inputStream = new FileInputStream(excel);
                 wb = new HSSFWorkbook(inputStream);
@@ -43,16 +40,20 @@ public class CreateSchema {
 
             // 解析并创建文件
             sheet = wb.getSheetAt(0);
-            createFile(wb.getSheetAt(0));
+            createFile();
+
+            FileOutputStream out = new FileOutputStream(excel);
+            wb.write(out);
+            out.close();
+
         }
     }
 
     /**
      * 创建schema.xml文件
-     * @param sheet 文件配置信息excel(数据源)
      * @throws IOException
      */
-    private static void createFile(Sheet sheet) throws IOException {
+    private static void createFile() throws IOException {
 
         BufferedWriter bw = new BufferedWriter(new FileWriter(new File("G:\\develope\\schema.xml")));
         bw.write("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
@@ -63,24 +64,24 @@ public class CreateSchema {
         bw.newLine();
 
         // 生成field字段
-        createField(sheet, bw);
+        createField(bw);
         bw.newLine();
 
         // 生成dynamicField字段
-        createDynamicField(sheet, bw);
+        createDynamicField(bw);
         bw.newLine();
 
         // 生成uniqueKey字段
-        createUniqueKey(sheet, bw);
+        createUniqueKey(bw);
         bw.newLine();
 
         // 生成copyField字段
-        createCopyField(sheet, bw);
+        createCopyField(bw);
         bw.newLine();
 
-        // 生成fieldType字段
-        createIKFieldType2(sheet, bw);
-        // 生成其它常用类型字段
+        // 生成自定义fieldType字段
+        createIKFieldType2(bw);
+        // 生成其它fieldType字段
         createOtherFieldType(bw);
 
     }
@@ -107,12 +108,11 @@ public class CreateSchema {
     }
 
     /**
-     * 生成三方fieldType字段
-     * @param sheet
+     * 生成自定义fieldType字段
      * @param bw
      * @throws IOException
      */
-    private static void createIKFieldType2(Sheet sheet, BufferedWriter bw) throws IOException {
+    private static void createIKFieldType2(BufferedWriter bw) throws IOException {
         StringBuffer sb = new StringBuffer();
         for (int start = 7;start < sheet.getLastRowNum(); start++) {
             Row rowFTField = sheet.getRow(start);
@@ -125,12 +125,10 @@ public class CreateSchema {
                         // 判断filter是否有值
                         if(checkCellIsNull(rowFTField.getCell(29))) {
                             if(sheet.getRow(rowFTField.getRowNum() + 1) == null) {
-                                sb.append("\n\t\t</analyzer>");
-                                sb.append("\n\t</fieldType>\r\n\r\n");
+                                sb.append("\n\t\t</analyzer>\n\t</fieldType>\r\n\r\n");
                                 break;
                             } else if (sheet.getRow(rowFTField.getRowNum() + 1).getCell(29) == null){
-                                sb.append("\n\t\t</analyzer>");
-                                sb.append("\n\t</fieldType>\r\n\r\n");
+                                sb.append("\n\t\t</analyzer>\n\t</fieldType>\r\n\r\n");
                             }
                         }else {
                             // 拼接filter
@@ -141,14 +139,12 @@ public class CreateSchema {
                             sb = appendFieldTypeStr(sb,"format", rowFTField, 32);
                             sb.append("/>");
                             if(sheet.getRow(rowFTField.getRowNum() + 1) == null || sheet.getRow(rowFTField.getRowNum() + 1).getCell(23) != null || sheet.getRow(rowFTField.getRowNum() + 1).getCell(29) == null) {
-                                sb.append("\n\t\t</analyzer>");
-                                sb.append("\n\t</fieldType>\r\n\r\n");
+                                sb.append("\n\t\t</analyzer>\n\t</fieldType>\r\n\r\n");
                             }
                         }
                     }else {
                         // 拼接analyzer
-                        sb.append("\n\t\t</analyzer> ");
-                        sb.append("\n\t\t<analyzer ");
+                        sb.append("\n\t\t</analyzer>\n\t\t<analyzer ");
                         sb = appendFieldTypeStr(sb,"type", rowFTField, 26);
                         sb.append(">");
                         // 拼接tokenizer
@@ -198,11 +194,10 @@ public class CreateSchema {
 
     /**
      * 生成copyField字段
-     * @param sheet 文件配置信息excel(数据源)
      * @param bw
      * @throws IOException
      */
-    private static void createCopyField(Sheet sheet, BufferedWriter bw) throws IOException {
+    private static void createCopyField(BufferedWriter bw) throws IOException {
         for (int start = 7;start < sheet.getLastRowNum(); start++) {
             Row rowCFSource = sheet.getRow(start);
             if(rowCFSource == null) {
@@ -228,11 +223,10 @@ public class CreateSchema {
 
     /**
      * 生成uniqueKey字段
-     * @param sheet 文件配置信息excel(数据源)
      * @param bw
      * @throws IOException
      */
-    private static void createUniqueKey(Sheet sheet, BufferedWriter bw) throws IOException {
+    private static void createUniqueKey(BufferedWriter bw) throws IOException {
         Row rowUKField = sheet.getRow(7);
         if(rowUKField != null) {
             Cell cellUKField = rowUKField.getCell(16);
@@ -247,11 +241,10 @@ public class CreateSchema {
 
     /**
      * 生成dynamicField字段
-     * @param sheet 文件配置信息excel(数据源)
      * @param bw
      * @throws IOException
      */
-    private static void createDynamicField(Sheet sheet, BufferedWriter bw) throws IOException {
+    private static void createDynamicField(BufferedWriter bw) throws IOException {
         for (int start = 7;start < sheet.getLastRowNum(); start++) {
             Row rowDynamicField = sheet.getRow(start);
             if(rowDynamicField == null) {
@@ -286,11 +279,10 @@ public class CreateSchema {
 
     /**
      * 生成field字段
-     * @param sheet 文件配置信息excel(数据源)
      * @param bw
      * @throws IOException
      */
-    private static void createField(Sheet sheet, BufferedWriter bw) throws IOException {
+    private static void createField(BufferedWriter bw) throws IOException {
         for (int start = 7;start < sheet.getLastRowNum(); start++) {
             Row rowField = sheet.getRow(start);
             if(rowField == null) {
@@ -352,8 +344,19 @@ public class CreateSchema {
      */
     private static StringBuffer appendFieldTypeStr(StringBuffer sb, String attrName, Row row, int cellIndex) {
         if(checkCellIsNull(row.getCell(cellIndex))) {
-            row.createCell(33).setCellValue(row.getRowNum()+ "," +cellIndex + "单元格输入不合法!");
-            //throw new RuntimeException(row.getRowNum()+ "," +cellIndex + "单元格输入不合法!");
+            Font font = wb.createFont();
+            font.setColor(Font.COLOR_RED);
+            font.setBold(true);
+            CellStyle cellStyle = wb.createCellStyle();
+            cellStyle.setFont(font);
+            Cell cell = row.getCell(33);
+            if(cell == null) {
+                cell = row.createCell(33);
+                cell.setCellValue(row.getRowNum()+ "," +cellIndex + "单元格输入不合法!--- ");
+            }else {
+                cell.setCellValue(cell.getStringCellValue() + row.getRowNum()+ "," +cellIndex + "单元格输入不合法!---");
+            }
+            cell.setCellStyle(cellStyle);
         }else {
             sb.append(attrName).append("=\"").append(row.getCell(cellIndex).getStringCellValue()).append("\" ");
         }
