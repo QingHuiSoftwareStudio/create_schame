@@ -22,7 +22,6 @@ public class CreateSchema {
     private static final String EXCEL_PATH = "G:\\develope\\schema.xlsx";
     private static final String FILE_TYPE_1 = "xls";
     private static final String FILE_TYPE_2 = "xlsx";
-    private static String WOOK_BOOK_TYPE = null;
 
     public static void main(String[] args) throws Exception {
 
@@ -34,11 +33,9 @@ public class CreateSchema {
             String[] split = excel.getName().split("\\.");
             Workbook wb = null;
             if(FILE_TYPE_1.equals(split[1])) {
-                WOOK_BOOK_TYPE = FILE_TYPE_1;
                 FileInputStream inputStream = new FileInputStream(excel);
                 wb = new HSSFWorkbook(inputStream);
             }else if(FILE_TYPE_2.equals(split[1])) {
-                WOOK_BOOK_TYPE = FILE_TYPE_2;
                 wb = new XSSFWorkbook(excel);
             }else {
                 throw new RuntimeException("只支持xls和xlsx格式的文件!");
@@ -118,7 +115,6 @@ public class CreateSchema {
     private static void createIKFieldType2(Sheet sheet, BufferedWriter bw) throws IOException {
         StringBuffer sb = new StringBuffer();
         for (int start = 7;start < sheet.getLastRowNum(); start++) {
-
             Row rowFTField = sheet.getRow(start);
             // 判断fieldType字段这一行是否有值
             if(rowFTField != null) {
@@ -128,66 +124,71 @@ public class CreateSchema {
                     if(checkCellIsNull(rowFTField.getCell(26))) {
                         // 判断filter是否有值
                         if(checkCellIsNull(rowFTField.getCell(29))) {
-                            //bw.write("</analyzer>");
+                            if(sheet.getRow(rowFTField.getRowNum() + 1) == null) {
+                                sb.append("\n\t\t</analyzer>");
+                                sb.append("\n\t</fieldType>\r\n\r\n");
+                                break;
+                            } else if (sheet.getRow(rowFTField.getRowNum() + 1).getCell(29) == null){
+                                sb.append("\n\t\t</analyzer>");
+                                sb.append("\n\t</fieldType>\r\n\r\n");
+                            }
                         }else {
                             // 拼接filter
-                            sb.append("\t\t\t<filter ");
+                            sb.append("\n\t\t\t<filter ");
                             sb = appendFieldTypeStr(sb,"class", rowFTField, 29);
                             sb = appendFieldTypeStr(sb,"ignoreCase", rowFTField, 30);
                             sb = appendFieldTypeStr(sb,"words", rowFTField, 31);
                             sb = appendFieldTypeStr(sb,"format", rowFTField, 32);
                             sb.append("/>");
-                            if(sheet.getRow(rowFTField.getRowNum() + 1) == null || sheet.getRow(rowFTField.getRowNum() + 1).getCell(23) != null) {
-                                sb.append("\r\n\t\t</analyzer>");
-                                sb.append("\r\n\t</fieldType>\r\n\r\n");
+                            if(sheet.getRow(rowFTField.getRowNum() + 1) == null || sheet.getRow(rowFTField.getRowNum() + 1).getCell(23) != null || sheet.getRow(rowFTField.getRowNum() + 1).getCell(29) == null) {
+                                sb.append("\n\t\t</analyzer>");
+                                sb.append("\n\t</fieldType>\r\n\r\n");
                             }
                         }
                     }else {
                         // 拼接analyzer
-                        sb.append("\r\n\t\t</analyzer>\r\n ");
-                        sb.append("\t\t<analyzer ");
+                        sb.append("\n\t\t</analyzer> ");
+                        sb.append("\n\t\t<analyzer ");
                         sb = appendFieldTypeStr(sb,"type", rowFTField, 26);
-                        sb.append(">\r\n");
+                        sb.append(">");
                         // 拼接tokenizer
-                        sb.append("\t\t\t<tokenizer ");
+                        sb.append("\n\t\t\t<tokenizer ");
                         sb = appendFieldTypeStr(sb,"class", rowFTField, 27);
                         sb = appendFieldTypeStr(sb,"mode", rowFTField, 28);
-                        sb.append("/>\r\n");
+                        sb.append("/>");
                         // 拼接filter
-                        sb.append("\t\t\t<filter ");
+                        sb.append("\n\t\t\t<filter ");
                         sb = appendFieldTypeStr(sb,"class", rowFTField, 29);
                         sb = appendFieldTypeStr(sb,"ignoreCase", rowFTField, 30);
                         sb = appendFieldTypeStr(sb,"words", rowFTField, 31);
                         sb = appendFieldTypeStr(sb,"format", rowFTField, 32);
-                        sb.append("/>\r\n");
+                        sb.append("/>");
                     }
                 }else {
-                    if(start != 7){
-                        sb.append("\r\n\t</analyzer>\r\n ");
-                        sb.append("\t</fieldType>\r\n ");
-                    }
-                    sb.append("\t<fieldType ");
+                    sb.append("\n\t<fieldType ");
                     sb = appendFieldTypeStr(sb,"name", rowFTField, 23);
                     sb = appendFieldTypeStr(sb,"class", rowFTField, 24);
                     sb = appendFieldTypeStr(sb,"positionIncrementGap", rowFTField, 25);
-                    sb.append(">\r\n");
+                    sb.append(">");
                     // 拼接analyzer
-                    sb.append("\t\t<analyzer ");
+                    sb.append("\n\t\t<analyzer ");
                     sb = appendFieldTypeStr(sb,"type", rowFTField, 26);
-                    sb.append(">\r\n");
+                    sb.append(">");
                     // 拼接tokenizer
-                    sb.append("\t\t\t<tokenizer ");
+                    sb.append("\n\t\t\t<tokenizer ");
                     sb = appendFieldTypeStr(sb,"class", rowFTField, 27);
                     sb = appendFieldTypeStr(sb,"mode", rowFTField, 28);
-                    sb.append("/>\r\n");
+                    sb.append("/>");
                     // 拼接filter
-                    sb.append("\t\t\t<filter ");
+                    sb.append("\n\t\t\t<filter ");
                     sb = appendFieldTypeStr(sb,"class", rowFTField, 29);
                     sb = appendFieldTypeStr(sb,"ignoreCase", rowFTField, 30);
                     sb = appendFieldTypeStr(sb,"words", rowFTField, 31);
                     sb = appendFieldTypeStr(sb,"format", rowFTField, 32);
-                    sb.append("/>\r\n");
+                    sb.append("/>");
                 }
+            }else {
+                break;
             }
         }
         bw.write(sb.toString());
@@ -319,9 +320,8 @@ public class CreateSchema {
             Cell cellMultiValued = sheet.getRow(start).getCell(6);
             sb = appendStr(sb, "multiValued", cellMultiValued, 6);
 
-            sb.append("/>");
+            sb.append("/>\n");
             bw.write(sb.toString());
-            bw.newLine();
         }
     }
 
