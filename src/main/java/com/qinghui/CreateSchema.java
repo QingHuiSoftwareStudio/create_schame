@@ -42,6 +42,7 @@ public class CreateSchema {
             sheet = wb.getSheetAt(0);
             createFile();
 
+            // 把提示信息写入文件中
             FileOutputStream out = new FileOutputStream(excel);
             wb.write(out);
             out.close();
@@ -118,6 +119,10 @@ public class CreateSchema {
             Row rowFTField = sheet.getRow(start);
             // 判断fieldType字段这一行是否有值
             if(rowFTField != null) {
+                // 判断当前fieldType字段是否有未读取的值
+                if(checkCellIsNull(rowFTField.getCell(23)) && checkCellIsNull(rowFTField.getCell(26)) && checkCellIsNull(rowFTField.getCell(27)) && checkCellIsNull(rowFTField.getCell(29))) {
+                    break;
+                }
                 // 判断fieldType字段是否输入了name值
                 if(checkCellIsNull(rowFTField.getCell(23))) {
                     // 判断analyzer是否有值
@@ -352,9 +357,9 @@ public class CreateSchema {
             Cell cell = row.getCell(33);
             if(cell == null) {
                 cell = row.createCell(33);
-                cell.setCellValue(row.getRowNum()+ "," +cellIndex + "单元格输入不合法!--- ");
+                cell.setCellValue(row.getRowNum()+ "," +cellIndex + "字段确定没有值吗?--- ");
             }else {
-                cell.setCellValue(cell.getStringCellValue() + row.getRowNum()+ "," +cellIndex + "单元格输入不合法!---");
+                cell.setCellValue(cell.getStringCellValue() + "(" + row.getRowNum()+ "," +cellIndex + ")" + sheet.getRow(5).getCell(cellIndex) +"字段单元格确定没有值吗!---");
             }
             cell.setCellStyle(cellStyle);
         }else {
